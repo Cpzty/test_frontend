@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Summary{% endblock %}
+
+{% block body %}
+    <h1>Summary Information</h1>
+
+    {# Dropdown to select header/process #}
+    <form method="get" action="{{ path('summary_index') }}">
+        <label for="header_id">Select Process:</label>
+        <select name="header_id" id="header_id" onchange="this.form.submit()">
+            <option value="">All</option>
+            {% for header in headers %}
+                <option value="{{ header.id }}" {% if header.id == selectedHeaderId %}selected{% endif %}>
+                    {{ header.executionDate|date('Y-m-d') }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {# Table of summaries #}
+    <table border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Process ID</th>
+                <th>Metric</th>
+                <th>Value</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for summary in summaries %}
+                <tr>
+                    <td>{{ summary.Id }}</td>
+                    <td>{{ summary.metric }}</td>
+                    <td>{{ summary.value }}</td>
+                    <td>{{ summary.createdAt ? summary.createdAt|date('Y-m-d H:i:s') : '' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Charts</h2>
+    <canvas id="genderChart" style="max-width:500px; max-height:350px;"></canvas>
+    <canvas id="metricsChart" style="max-width:500px; max-height:350px;"></canvas>
+
+    {# Debug - optional #}
+    {# <pre>Metrics: {{ metrics|json_encode|raw }}</pre>
+    <pre>ProcessCounts: {{ processCounts|json_encode|raw }}</pre> #}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.onload = function() {
+            // Metrics chart
+            const metricsChart = new Chart(document.getElementById('metricsChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ metrics|keys|json_encode|raw }},
+                    datasets: [{
+                        label: 'Total Value per Metric',
+                        data: {{ metrics|map(v => v)|json_encode|raw }},
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                   
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // Gender chart
+            const genderData = {{ genderCounts|json_encode|raw }};
+            const ctxGender = document.getElementById('genderChart').getContext('2d');
+            new Chart(ctxGender, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(genderData),
+                    datasets: [{
+                        label: 'Gender Distribution',
+                        data: Object.values(genderData),
+                        backgroundColor: ['#36A2EB', '#FF6384'], 
+                    }]
+                },
+            });
+        }
+    </script>
+{% endblock %}
